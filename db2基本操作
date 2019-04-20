@@ -1,0 +1,167 @@
+db2基本操作
+1.登录db2的实例账号: su - db2inst1
+2.数据库实例的启动： su - db2inst1; db2start
+3.数据库实例的关闭:  su - db2inst1; db2 force application all(强制关闭所有程序);  db2stop
+4.显示所有的实例：db2ilist
+5.显示当前的实例：db2 get instance
+6.删除一个实例(注:需切换到root用户权限下)：cd /opt/ibm/db2/V11.1/instance/; pwd; ./db2idrop db2inst1
+7.列出当前实例中有哪些数据库: su - db2inst1;  db2 list db directory
+8.创建数据库: su - db2inst1; db2 create database test; db2start;  db2 create database test; db2 list db directory;
+  使用UTF-8编码创建数据库: db2 create database test on '/home/db2inst1' using codeset UTF-8 territory CN
+9.连接数据库：db2 connect to test
+  注:用密码情况下：db2 connect to test user username using password
+10.列出当前实例中所有激活的数据库：db2 list active databases
+11.查看表的空间：db2 list tablespaces [ show detail ]（注: show detail为可选项,显示更详细信息） 或者 db2pd -tablespaces -db 数据库名
+12.列出数据库中所有用户表：db2 list tables
+13.在数据库test中创建表student：db2 "create table student (id int,fname varchar(30),age int)"
+14.向表student中添加数据信息：db2 "insert into student values (1,'Tom',22)"; db2 "insert into student values (2,'Jack',21)" ; db2 "insert into student values (3,'Sunrier',25)"
+15.显示表student所有的信息: db2 "select * from student"
+16.更改表student中的数据(如将Sunrier的年龄改为22): db2 "update student set age=22 where fname='Sunrier'"
+17.查看表student结构: db2 describe table student; db2 "describe select * from student"; db2 "describe select * from db2inst1.student"
+18.创建一个新表(如people)与数据库中某个表(如student)结构相同: db2 create table people like student
+19.两个结构相同的表,将原来数据库中某个表(如student)的数据导入与它相同结构的新表(如people)中: db2 "insert into people select * from student"
+20.修改一个表的字段类型(如表people中的fname字段把varchar(30)改为varchar(28)):  db2 "alter table people alter column fname set data type varchar(28)"
+21.向一个表添加字段(如向表people中添加备注信息字段notes;向表people中添加分数字段score): db2 "alter table people add notes varchar(100)"; db2 "alter table people add score integer"
+22.删除表中的某个字段(如删除表people中的字段score): db2 "alter table people drop column score"; db2 reorg table people
+23.给表中添加带默认值的字段(如向表people中添加分数字段score,默认设置为90):  db2 "alter table people add column score interger not null with default 90"
+24.列出数据库中用户表: db2 list tables for user
+25.列出数据库中所有系统表:  db2 list tables for system
+26.列出数据库中所有表: db2 list tables for all
+27.列出数据库中特定用户表: db2 list tables for schema db2inst1
+28.删除表中的数据: db2 delete from student where id=3; db2 "select * from student"
+29.删除一个数据库中的某个表:  db2 drop table student; db2 list tables
+30.删除一个数据库test: db2 drop db test ; db2 connect reset ; db2 drop db test ; db2 list db directory
+31.显示当前数据库连接有哪些应用程序: db2 list application
+32.查看DB2全部受支持的注册表变量列表: db2set -lr
+33.更改DB2 UDB注册表变量的值: db2set DB2COMM=TCPIP
+34..查看在服务器上已经设置的所有DB2概要文件注册表: db2set -all
+35.导出表中的数据(以DEL格式导出):  db2 "export to teacher.txt of del select * from teacher"; 字段之间默认分隔符号为逗号,下面使用'|'分割:db2 "export to teacher_bak.txt of del modified by coldel| select * from teacher"
+                  以IXF格式导出 :  db2 "export to /home/db2inst1/Sunrier/teacher.ixf of ixf select * from teacher"; 如需要导出记录过程的message:db2 "export to /home/db2inst1/Sunrier/teacher_bak.ixf of ixf messages /home/db2inst1/Sunrier
+36.导入数据到一个表中: db2 "import from teacher.txt of del insert into teacher"; db2 "import from teacher_bak.txt of del modified by coldel| insert into teacher"
+37.利用脚本创建表:db2 -tvf teacher.sql 
+create table teacher
+(
+  id integer not null ,
+  fname varchar(20) not null,
+  address varchar(80) default '上海',
+  birth date,
+  primary key(id)
+); 
+insert into teacher values(1,'Lory','上海徐汇中学','1978-08-06');
+insert into teacher values(2,'Sunrier','田林中学','1988-06-27');
+38.备份数据库(如防止表误操作): db2 backup db test to /home/db2inst1/Sunrier   如: db2 force application all 强制关闭实例上的所有应用程序 
+39.恢复数据库(如将一个表删除后,通过删除前的备份文件恢复):db2 restore db test from /home/db2inst1/Sunrier
+40.db2move命令的使用: db2move是一个集成式的数据移动工具,它具有导入(import),导出(export),装入(load)三种操作方法.db2move导出的数据文件格式是IXF(Integration Exchange Format)集成交换格式.
+   格式:db2move <database name> [ export -tc <username> ] -u <username> -p <password>
+参数: -tc 创建表的用户名
+      -tn 用户的表名
+      -sn 模式名,即导出该模式下的所有表     
+查看db2move命令帮助db2move -help
+导出test数据库中的全部数据: db2move test export -u db2inst1 -p Sunrier
+  注:
+  执行上面命令后会把数据库test中全部数据提取到当前目录(/home/db2inst1),每个表的内容都存储在一个.ixf文件中,
+  每个.ixf文件都有一个与之相对应的.msg文件,.msg文件是描述从表中导出数据时的信息.例外还有两个文件,db2move.lst用来
+  记录.ixf文件,.msg文件与表一一对应.EXPORT.out记录的是导出数据时的屏幕输出.
+导出test数据库中的teacher表中的信息: db2move test export -tn teacher -u db2inst1 -p Sunrier
+41.查看test数据库备份的历史记录: db2 list history backup all for test
+42.读数据库管理程序配置: db2 get dbm cfg
+43.写数据库管理程序配置: db2 update dbm cfg using 参数名 参数值
+44.查看数据库的配置: db2 connect to <database> user <username> using <password>
+                     db2 get db cfg  [ for <database> ]
+                     database:数据库名
+                     username:用户名
+                     password:表示密码
+45.设置数据库的配置:db2 connect to <database> user <username> using <password>
+                    db2 update db cfg for <database> using 参数名 参数值
+46.添加DB2服务端口50000:vim /etc/services    db2inst1 50000/tcp
+47.断开与数据库的连接: db2 connect reset 或 db2 terminate 
+                       db2 disconnect <database>
+48.查看命令帮助: db2 ? db2start
+49.查看错误码信息:  db2 ? 22003
+
+LINUX下创建db2数据库、用户、授权、导入库
+
+创建数据库：（db2inst1用户下）
+db2 create database test on '/home/db2inst1' using codeset UTF-8 territory CN
+
+创建用户：（root用户下）
+[root@devsvr2 root]# useradd test
+[root@devsvr2 root]# passwd test
+Changing password for user oatest.
+New password:
+BAD PASSWORD: it is too short
+Retype new password:
+passwd: all authentication tokens updated successfully.
+
+授权：（db2inst1用户下）
+[db2inst1@devsvr2 db2inst1]$ db2 connect to test
+数据库连接信息
+数据库服务器 = DB2/LINUX 8.2.0
+SQL 授权标识 = DB2INST1
+本地数据库别名 = test
+[db2inst1@devsvr2 db2inst1]$ db2 GRANT DBADM,CREATETAB,BINDADD,CONNECT,CREATE_NOT_FENCED_ROUTINE,IMPLICIT_SCHEMA,LOAD,CREATE_EXTERNAL_ROUTINE,QUIESCE_CONNECT ON DATABASE TO USER test;
+DB20000I SQL 命令成功完成。
+
+创建schema: 
+[db2inst1@devsvr2 db2inst1]$ db2 "create schema test"
+[db2inst1@devsvr2 db2inst1]$ db2 GRANT CREATEIN,DROPIN,ALTERIN ON SCHEMA test TO USER test
+DB20000I SQL 命令成功完成。
+[db2inst1@devsvr2 db2inst1]$ db2 connect to test user test using pass1234
+数据库连接信息
+数据库服务器 = DB2/LINUX 8.2.0
+SQL 授权标识 = test
+本地数据库别名 = test
+
+远程导入数据
+1.创建表机构
+2.将data数据包data1031放在bak目录下
+执行（db2inst1用户下）
+cd /home/db2inst1/bak/data1031
+cd /home/db2inst1/backup/data1031
+db2move scfns import -io replace -u test -p pass1234
+db2move scfns import -u test -p pass1234
+
+#jdbc.driverClassName=com.ibm.db2.jcc.DB2Driver
+#jdbc.url=jdbc:db2://130.251.106.14:50001/scf
+#jdbc.username=scf
+#jdbc.password=pass1234
+jdbc:db2://database_server_uri:port/database_name:currentSchema=schema_name;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
